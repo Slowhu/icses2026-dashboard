@@ -690,7 +690,7 @@ async function loadSheet() {
   showMsg("กำลังโหลด...");
 
   try {
-    const res = await fetch(url);
+    const res = await fetch(url, {cache: "no-store"});
     if (!res.ok) throw new Error("HTTP "+res.status);
     const csv = await res.text();
     if (csv.includes("<!DOCTYPE")) throw new Error("Sheet ไม่ได้เป็น Public");
@@ -719,7 +719,8 @@ function loadDemo() {
 function refreshData() {
   const id = "1IZbaODJzCfXwsMIP6yjwzdDq01n6XIoC";
   const sheetParam = encodeURIComponent("Paper Tracking");
-  const url = `https://docs.google.com/spreadsheets/d/${id}/gviz/tq?tqx=out:csv&sheet=${sheetParam}`;
+  const ts2 = Date.now();
+  const url = `https://docs.google.com/spreadsheets/d/${id}/gviz/tq?tqx=out:csv&sheet=${sheetParam}&t=${ts2}`;
   document.getElementById("loading").classList.add("show");
   fetch(url)
     .then(r => r.text())
@@ -783,10 +784,11 @@ renderTimeline();
 (async () => {
   const id = "1IZbaODJzCfXwsMIP6yjwzdDq01n6XIoC";
   const sheetParam = encodeURIComponent("Paper Tracking");
-  const url = `https://docs.google.com/spreadsheets/d/${id}/gviz/tq?tqx=out:csv&sheet=${sheetParam}`;
+  const ts = Date.now();
+  const url = `https://docs.google.com/spreadsheets/d/${id}/gviz/tq?tqx=out:csv&sheet=${sheetParam}&t=${ts}`;
   document.getElementById("loading").classList.add("show");
   try {
-    const res = await fetch(url);
+    const res = await fetch(url, {cache: "no-store"});
     if (!res.ok) throw new Error("HTTP "+res.status);
     const csv = await res.text();
     if (csv.includes("<!DOCTYPE")) throw new Error("Sheet ไม่ได้เป็น Public");
