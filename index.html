@@ -674,7 +674,12 @@ function refreshAll() {
 function parseCSV(text) {
   const lines = text.split(/\r?\n/).filter(l => l.trim());
   if (lines.length < 2) return [];
-  const header = parseCSVLine(lines[0]).map(h => h.trim().toLowerCase().replace(/\s+/g,""));
+  let hdrIdx = 0;
+  for (let i = 0; i < Math.min(5, lines.length); i++) {
+    const j = lines[i].toLowerCase();
+    if (j.includes("title") || j.includes("paper id") || j.includes("paperid")) { hdrIdx = i; break; }
+  }
+  const header = parseCSVLine(lines[hdrIdx]).map(h => h.trim().toLowerCase().replace(/\s+/g,""));
   const idx = {
     id:     findCol(header, ["paperid","id"]),
     title:  findCol(header, ["title"]),
@@ -684,7 +689,7 @@ function parseCSV(text) {
     status: findCol(header, ["reviewstatus","currentstatus","status"]),
     dec:    findCol(header, ["decision"]),
   };
-  return lines.slice(1).map(l => {
+  return lines.slice(hdrIdx + 1).map(l => {
     const c = parseCSVLine(l);
     return [
       c[idx.id]||"", c[idx.title]||"", c[idx.author]||"",
