@@ -64,52 +64,6 @@
   .topbar-right { display: flex; align-items: center; gap: 10px; }
   .last-loaded { font-size: 11px; color: #93C5FD; font-family: var(--mono); }
 
-  /* ── Import bar ── */
-  .import-section {
-    background: #fff;
-    border-bottom: 1px solid var(--border);
-    padding: 10px 28px;
-    display: flex;
-    align-items: center;
-    gap: 10px;
-    flex-wrap: wrap;
-  }
-  .import-label { font-size: 12px; font-weight: 500; color: var(--text-muted); white-space: nowrap; }
-  .import-section input[type=text] {
-    flex: 1;
-    min-width: 280px;
-    height: 34px;
-    border: 1px solid var(--border);
-    border-radius: 6px;
-    padding: 0 12px;
-    font-family: var(--mono);
-    font-size: 12px;
-    color: var(--text);
-    background: var(--gray-lt);
-    outline: none;
-    transition: border-color .15s;
-  }
-  .import-section input[type=text]:focus { border-color: var(--blue); background: #fff; }
-  .btn {
-    height: 34px;
-    padding: 0 16px;
-    border-radius: 6px;
-    border: 1px solid var(--border);
-    font-family: var(--font);
-    font-size: 12px;
-    font-weight: 500;
-    cursor: pointer;
-    transition: all .15s;
-    white-space: nowrap;
-  }
-  .btn-primary { background: var(--blue); color: #fff; border-color: var(--blue); }
-  .btn-primary:hover { background: #1348c8; }
-  .btn-ghost { background: transparent; color: var(--text-muted); }
-  .btn-ghost:hover { background: var(--gray-lt); color: var(--text); }
-  .msg { font-size: 11px; color: var(--text-muted); padding: 4px 10px; background: var(--gray-lt); border-radius: 4px; display: none; }
-  .msg.show { display: inline-block; }
-  .msg.error { background: var(--red-lt); color: var(--red); }
-  .msg.success { background: var(--green-lt); color: var(--green); }
 
   /* ── Layout ── */
   .main { padding: 20px 28px 40px; max-width: 1400px; }
@@ -324,15 +278,6 @@
     <button class="btn btn-ghost" onclick="refreshData()" style="font-size:11px;">รีเฟรชเดี๋ยวนี้</button>
     <button id="auto-btn" class="btn btn-ghost" onclick="toggleAuto()" style="font-size:11px;">เปิด Auto-refresh</button>
   </div>
-</div>
-
-<!-- Import bar -->
-<div class="import-section">
-  <span class="import-label">Google Sheet URL:</span>
-  <input type="text" id="sheet-url" placeholder="https://docs.google.com/spreadsheets/d/YOUR_SHEET_ID/edit" />
-  <button class="btn btn-primary" onclick="loadSheet()">โหลดข้อมูล</button>
-  <button class="btn btn-ghost" onclick="loadDemo()">ใช้ Demo</button>
-  <span class="msg" id="msg"></span>
 </div>
 
 <!-- Main -->
@@ -772,13 +717,23 @@ function loadDemo() {
 }
 
 function refreshData() {
-  const saved = localStorage.getItem("icses_sheet_id");
-  if (saved) {
-    document.getElementById("sheet-url").value = saved;
-    loadSheet();
-  } else {
-    showMsg("ยังไม่มี Sheet URL — กรอก URL แล้วกด 'โหลดข้อมูล'");
-  }
+  const id = "1IZbaODJzCfXwsMIP6yjwzdDq01n6XIoC";
+  const sheetParam = encodeURIComponent("Paper Tracking");
+  const url = `https://docs.google.com/spreadsheets/d/${id}/gviz/tq?tqx=out:csv&sheet=${sheetParam}`;
+  document.getElementById("loading").classList.add("show");
+  fetch(url)
+    .then(r => r.text())
+    .then(csv => {
+      const parsed = parseCSV(csv);
+      if (parsed.length) {
+        papers = parsed;
+        const now = new Date().toLocaleTimeString("th-TH");
+        document.getElementById("last-loaded").textContent = "โหลดแล้ว "+now;
+        refreshAll();
+      }
+    })
+    .catch(() => {})
+    .finally(() => document.getElementById("loading").classList.remove("show"));
 }
 
 // ── Auto-refresh ─────────────────────────────────────
@@ -824,14 +779,31 @@ function updateCountdown() {
 
 // ── Init ──────────────────────────────────────────────
 renderTimeline();
-// Auto-load if Sheet ID was saved before
-const savedId = localStorage.getItem("icses_sheet_id");
-if (savedId) {
-  document.getElementById("sheet-url").value = savedId;
-  loadSheet();
-} else {
-  loadDemo();
-}
+// Auto-load hardcoded Sheet
+(async () => {
+  const id = "1IZbaODJzCfXwsMIP6yjwzdDq01n6XIoC";
+  const sheetParam = encodeURIComponent("Paper Tracking");
+  const url = `https://docs.google.com/spreadsheets/d/${id}/gviz/tq?tqx=out:csv&sheet=${sheetParam}`;
+  document.getElementById("loading").classList.add("show");
+  try {
+    const res = await fetch(url);
+    if (!res.ok) throw new Error("HTTP "+res.status);
+    const csv = await res.text();
+    if (csv.includes("<!DOCTYPE")) throw new Error("Sheet ไม่ได้เป็น Public");
+    const parsed = parseCSV(csv);
+    if (!parsed.length) throw new Error("ไม่พบข้อมูล");
+    papers = parsed;
+    const now = new Date().toLocaleTimeString("th-TH");
+    document.getElementById("last-loaded").textContent = "โหลดแล้ว "+now;
+    refreshAll();
+  } catch(e) {
+    papers = DEMO;
+    document.getElementById("last-loaded").textContent = "Demo data";
+    refreshAll();
+  } finally {
+    document.getElementById("loading").classList.remove("show");
+  }
+})();
 </script>
 </body>
 </html>
